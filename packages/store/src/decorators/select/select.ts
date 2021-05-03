@@ -2,7 +2,8 @@ import { ɵivyEnabled } from '@angular/core';
 import { ensureLocalInjectorCaptured, localInject } from '@ngxs/store/internals';
 
 import { Store } from '../../store';
-import { createSelectObservable, createSelectorFn, PropertyType } from './symbols';
+import { NgxsConfig } from '../../symbols';
+import { createSelectObservable, createSelectorFn, PropertyType, SelectorFn } from './symbols';
 
 /**
  * Decorator for selecting a slice of state from the store.
@@ -11,7 +12,7 @@ export function Select<T>(rawSelector?: T, ...paths: string[]): PropertyDecorato
   return function(target, key): void {
     const name: string = key.toString();
     const selectorId = `__${name}__selector`;
-    const selector = createSelectorFn(name, rawSelector, paths);
+    let selector: SelectorFn | null = null;
 
     Object.defineProperties(target, {
       [selectorId]: {
@@ -23,6 +24,10 @@ export function Select<T>(rawSelector?: T, ...paths: string[]): PropertyDecorato
         enumerable: true,
         configurable: true,
         get(): PropertyType<T> {
+          selector =
+            selector ||
+            createSelectorFn(localInject(this, NgxsConfig), name, rawSelector, paths);
+
           return (
             this[selectorId] ||
             (this[selectorId] = createSelectObservable(selector, localInject(this, Store)))
