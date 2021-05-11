@@ -2,7 +2,16 @@ import { Component, Injectable, Type } from '@angular/core';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { By } from '@angular/platform-browser';
-import { Actions, NgxsModule, ofActionDispatched, Selector, State, Store } from '@ngxs/store';
+import {
+  Actions,
+  NgxsModule,
+  NgxsOnChanges,
+  NgxsSimpleChange,
+  ofActionDispatched,
+  Selector,
+  State,
+  Store
+} from '@ngxs/store';
 import {
   NgxsFormPluginModule,
   ResetForm,
@@ -252,6 +261,68 @@ describe('NgxsFormPlugin', () => {
     expect(form).toEqual({ model: { name: 'Mehmet Ozan Turhan' } });
   });
 
+  describe('NgxsFormPlugin event behavior', function() {
+    it('should call ngxsOnChanges on every form update', () => {
+      const allChangesQueue: NgxsSimpleChange[] = [];
+
+      interface SchoolStateModel {
+        schoolForm: Form;
+      }
+
+      @State<SchoolStateModel>({
+        name: 'school',
+        defaults: {
+          schoolForm: {
+            model: undefined
+          }
+        }
+      })
+      class SchoolState implements NgxsOnChanges {
+        ngxsOnChanges(change: NgxsSimpleChange): void {
+          console.log(change);
+          allChangesQueue.push(change);
+        }
+      }
+
+      TestBed.configureTestingModule({
+        imports: [NgxsModule.forRoot([SchoolState]), NgxsFormPluginModule.forRoot()]
+      });
+
+      const store: Store = TestBed.inject(Store);
+
+      store.dispatch([
+        new UpdateForm({
+          value: { name: 'waterloo high school', studentAmount: 420 },
+          errors: {},
+          dirty: true,
+          status: 'VALID',
+          path: 'school.schoolForm'
+        })
+      ]);
+
+      expect(allChangesQueue).toEqual([
+        // init value
+        {
+          previousValue: undefined,
+          currentValue: { schoolForm: { model: undefined } },
+          firstChange: true
+        },
+        // after first UpdateForm action
+        {
+          previousValue: { schoolForm: { model: undefined } },
+          currentValue: {
+            value: { name: 'waterloo high school', studentAmount: 420 },
+            errors: {},
+            dirty: true,
+            status: 'VALID',
+            path: 'school.schoolForm'
+          },
+          firstChange: false
+        }
+      ]);
+    });
+  });
+
   describe('NgxsFormPlugin runtime behavior', () => {
     it('should sync model with form', () => {
       // Arrange
@@ -272,7 +343,8 @@ describe('NgxsFormPlugin', () => {
       @Component({
         template: `
           <form [formGroup]="form" ngxsForm="todos.todosForm">
-            <input formControlName="text" /> <button type="submit">Add todo</button>
+            <input formControlName="text" />
+            <button type="submit">Add todo</button>
           </form>
         `
       })
@@ -337,9 +409,8 @@ describe('NgxsFormPlugin', () => {
         @Component({
           template: `
             <form [formGroup]="form" ngxsForm="todos.todosForm" ngxsFormClearOnDestroy>
-              <input type="text" formControlName="text" /><button type="submit">
-                Add todo
-              </button>
+              <input type="text" formControlName="text" />
+              <button type="submit">Add todo</button>
             </form>
           `
         })
@@ -374,7 +445,8 @@ describe('NgxsFormPlugin', () => {
         @Component({
           template: `
             <form [formGroup]="form" ngxsForm="todos.todosForm" ngxsFormClearOnDestroy="false">
-              <input type="text" formControlName="text" /><button type="submit">
+              <input type="text" formControlName="text" />
+              <button type="submit">
                 Add todo
               </button>
             </form>
@@ -413,9 +485,8 @@ describe('NgxsFormPlugin', () => {
         @Component({
           template: `
             <form [formGroup]="form" ngxsForm="todos.todosForm">
-              <input type="text" formControlName="text" /><button type="submit">
-                Add todo
-              </button>
+              <input type="text" formControlName="text" />
+              <button type="submit">Add todo</button>
             </form>
           `
         })
@@ -452,7 +523,8 @@ describe('NgxsFormPlugin', () => {
         @Component({
           template: `
             <form [formGroup]="form" ngxsForm="todos.todosForm" ngxsFormClearOnDestroy="true">
-              <input formControlName="text" /> <button type="submit">Add todo</button>
+              <input formControlName="text" />
+              <button type="submit">Add todo</button>
             </form>
           `
         })
@@ -491,7 +563,8 @@ describe('NgxsFormPlugin', () => {
               ngxsForm="todos.todosForm"
               [ngxsFormClearOnDestroy]="true"
             >
-              <input formControlName="text" /> <button type="submit">Add todo</button>
+              <input formControlName="text" />
+              <button type="submit">Add todo</button>
             </form>
           `
         })
@@ -543,7 +616,8 @@ describe('NgxsFormPlugin', () => {
       @Component({
         template: `
           <form [formGroup]="form" ngxsForm="todos.todosForm" [ngxsFormDebounce]="0">
-            <input formControlName="text" /> <button type="submit">Add todo</button>
+            <input formControlName="text" />
+            <button type="submit">Add todo</button>
           </form>
         `
       })
@@ -613,7 +687,8 @@ describe('NgxsFormPlugin', () => {
       @Component({
         template: `
           <form [formGroup]="form" ngxsForm="todos.todosForm" [ngxsFormDebounce]="-1">
-            <input formControlName="text" /> <button type="submit">Add todo</button>
+            <input formControlName="text" />
+            <button type="submit">Add todo</button>
           </form>
         `
       })
@@ -674,7 +749,8 @@ describe('NgxsFormPlugin', () => {
       @Component({
         template: `
           <form [formGroup]="form" ngxsForm="todos.todosForm">
-            <input formControlName="text" /> <button type="submit">Add todo</button>
+            <input formControlName="text" />
+            <button type="submit">Add todo</button>
           </form>
         `
       })
@@ -738,7 +814,8 @@ describe('NgxsFormPlugin', () => {
       @Component({
         template: `
           <form [formGroup]="form" ngxsForm="todos.todosForm">
-            <input formControlName="text" /> <button type="submit">Add todo</button>
+            <input formControlName="text" />
+            <button type="submit">Add todo</button>
           </form>
         `
       })
@@ -799,7 +876,8 @@ describe('NgxsFormPlugin', () => {
       @Component({
         template: `
           <form [formGroup]="form" ngxsForm="todos.todosForm" [ngxsFormDebounce]="-1">
-            <input formControlName="text" /> <button type="submit">Add todo</button>
+            <input formControlName="text" />
+            <button type="submit">Add todo</button>
           </form>
         `
       })
@@ -869,7 +947,8 @@ describe('NgxsFormPlugin', () => {
       @Component({
         template: `
           <form [formGroup]="form" ngxsForm="todos.todosForm">
-            <input formControlName="text" /> <button type="submit">Add todo</button>
+            <input formControlName="text" />
+            <button type="submit">Add todo</button>
           </form>
         `
       })
@@ -932,7 +1011,8 @@ describe('NgxsFormPlugin', () => {
       @Component({
         template: `
           <form [formGroup]="form" [ngxsFormDebounce]="500" ngxsForm="todos.todosForm">
-            <input formControlName="text" /> <button type="submit">Add todo</button>
+            <input formControlName="text" />
+            <button type="submit">Add todo</button>
           </form>
         `
       })
@@ -1003,7 +1083,8 @@ describe('NgxsFormPlugin', () => {
       @Component({
         template: `
           <form [formGroup]="form" ngxsForm="todos.todosForm">
-            <input formControlName="text" /> <button type="submit">Add todo</button>
+            <input formControlName="text" />
+            <button type="submit">Add todo</button>
           </form>
         `
       })
